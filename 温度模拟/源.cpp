@@ -58,7 +58,7 @@ public:
 class date {
 public:
 	date_time myTime;
-	string tempStr;
+	string DateStr;
 	date() {};
 	date(date_time d)
 	{
@@ -66,7 +66,9 @@ public:
 	};
 	bool isLeepYear();//判断是不是闰年
 	void setDate(int offset, int days, int quarter);//得到对应的月份天数
-	void setTempString();	//得到正确格式
+	void setDateString();	//得到正确格式
+	string getFileString(); //得到正确的文件夹格式
+	string getTXTString();//得到正确的txt文件格式
 	bool operator=(const date& d)//符号重载
 	{
 		this->myTime = d.myTime;
@@ -287,7 +289,7 @@ void date::setDate(int offset, int days, int quarter)
 	myTime.quarter = tm.tm_min;
 }
 
-void date::setTempString()
+void date::setDateString()
 {
 	string ans, syear, smonth, sday, shour;
 	syear = to_string(myTime.year);
@@ -314,11 +316,50 @@ void date::setTempString()
 	else {
 		ans = ans + to_string(k);
 	}
-	tempStr = ans;
+	DateStr = ans;
+}
+
+string date::getFileString()
+{
+	string ans, syear, smonth;
+	syear = to_string(myTime.year);
+	smonth = to_string(myTime.month);
+	if (smonth.length() == 1)
+	{
+		smonth.insert(0, "0");
+	}
+	ans = "D:\\Temps\\" + syear + '_' + smonth;
+	return ans;
+}
+
+string date::getTXTString()
+{
+	string ans, syear, smonth, sday;
+	syear = to_string(myTime.year);
+	smonth = to_string(myTime.month);
+	sday = to_string(myTime.day);
+	if (smonth.length() == 1)
+	{
+		smonth.insert(0, "0");
+	}
+	if (sday.length() == 1)
+	{
+		sday.insert(0, "0");
+	}
+	ans = syear + '_' + smonth + "_" + sday + ".txt";
+	return ans;
+}
+
+//创建文件夹
+void mkDir(string path) {
+	string p = "mkdir " + path;  // 注意斜杠是两个。
+	system(p.c_str());  //产生以时间为名字的文件夹
 }
 
 int main()
 {
+	string fileName;
+	string fileRoute;
 	Temp t;
 	sensorMatrix sm(LENGTH, WIDTH);
 	date_time startTime(2016, 1, 1, 0, 0);
@@ -327,15 +368,27 @@ int main()
 	t.ps = &sm;
 	for (int i = 1; i <= 3; i++)
 	{
-		for (int j = 0; j <= d.isLeepYear() ? 366 : 365; j++)
+		d.setDate(i, 0, 0);
+		for (int j = 0; j <=( d.isLeepYear() ? 366 : 365); j++)
 		{
+			d.setDate(i, j, 0);
+			//以月为单位创建文件夹
+			if (d.myTime.day == 1) {
+				mkDir(d.getFileString());
+			}
+			//以天为单位创建txt文件
+			ofstream file;
+			fileName = d.getTXTString();
+			fileRoute = d.getFileString() + "\\" + fileName;
+			file.open(fileRoute, ios::in | ios::app);
 			for (int m = 0; m < 96; m++)
 			{
 				d.setDate(i, j, m);
-				d.setTempString();
-				cout << t.getTempString() + "℃_" + d.tempStr << endl;
-				Sleep(SECONDS);
+				d.setDateString();
+				cout << t.getTempString() + "℃_" + d.DateStr << endl;
+				file << t.getTempString() + "℃_" + d.DateStr << endl;
 			}
+			file.close();
 		}
 	}
 	return 0;

@@ -17,7 +17,7 @@ using namespace std;
 struct date_time {
 	date_time() {};
 	date_time(int y, int m, int d, int h, int quarter) {
-		this->year = y;this->month = m;this->day = d;this->hour = h;this->quarter = quarter;
+		this->year = y; this->month = m; this->day = d; this->hour = h; this->quarter = quarter;
 	}
 	int year;
 	int month;
@@ -87,7 +87,8 @@ public:
 	string getTempString();//得到温度字符串
 };
 
-float sensor::getTemp(double Rt)//阻值转温度
+//传感器阻值转换为温度
+float sensor::getTemp(double Rt)
 {
 	float t, ans;
 	const float Rp = 10000.0; //10K
@@ -105,7 +106,8 @@ float sensor::getTemp(double Rt)//阻值转温度
 	return ans;
 }
 
-float Temp::averageTemp() //每一个月平均温度
+//获取每一个月平均温度
+float Temp::averageTemp()
 {
 	float ans = 0;
 	int high, low;
@@ -124,16 +126,15 @@ float Temp::averageTemp() //每一个月平均温度
 	case 12:high = 25900; low = 19200; break;
 	default:cout << "ERROR!\n";
 	}
-	for (int i = 0; i < ps->length; i++)
-		for (int j = 0; j < ps->width; j++) {
-			srand((double)clock());
-			ans += ps->s->getTemp(random(low, high));
-		}
-	ans = (ans / LENGTH) / WIDTH;
+	//srand((double)clock());
+	//ans += ps->s->getTemp(random(low, high));
+	ans = ps->s->getTemp(high) + ps->s->getTemp(low);
+	ans = ans / 2;
 	ps->averageTemp = ans;
 	return ans;
 }
 
+//获取每一时刻的温度
 float Temp::getQuarterTemp() //得到某一个quarter的温度
 {
 	float tHigh, tLow;
@@ -160,7 +161,7 @@ float Temp::getQuarterTemp() //得到某一个quarter的温度
 		if (day <= 10 && day >= 1)
 			temp -= 2;
 		else if (day <= 31 && day >= 20)
-			temp += 2;
+			temp += 3;
 		break;
 	case 4:
 		if (day <= 10 && day >= 1)
@@ -227,7 +228,7 @@ float Temp::getQuarterTemp() //得到某一个quarter的温度
 		tLow = temp + (quarter / 30) + hour * 2 - 17;
 	}
 	else if (hour >= 8 && hour <= 13) {
-		tHigh = temp + (quarter / 45)+ hour - 8;
+		tHigh = temp + (quarter / 45) + hour - 8;
 		tLow = temp + (quarter / 45) + hour - 9;
 	}
 	else if (hour >= 14 && hour <= 17) {
@@ -243,13 +244,20 @@ float Temp::getQuarterTemp() //得到某一个quarter的温度
 		tLow = temp - (quarter / 45) - hour + 18;
 	}
 	else cerr << "ERROR!\n";
-	srand((double)clock());
-	float k = random(int(10 * tLow), int(10 * tHigh));
+	float k = 0;
+	for (int i = 0; i < ps->length; i++)
+		for (int j = 0; j < ps->width; j++)
+		{
+			srand((double)clock());
+			k += random(int(10 * tLow), int(10 * tHigh));
+		}
+	k = k / (ps->length) / (ps->width);
 	ans = k / 10.0;
 	temp = ans;
 	return ans;
 }
 
+//获取温度字符串
 string Temp::getTempString() {
 	string* ans;
 	string s = to_string(getQuarterTemp());
@@ -260,9 +268,10 @@ string Temp::getTempString() {
 		s.insert(1, "0");
 	}
 	s.erase(s.end() - 5, s.end());
-	return s;
+	return s + "℃";
 }
 
+//判断是否是闰年
 bool date::isLeepYear() {
 	bool ans = false;
 	if (myTime.year % 4 == 0 && myTime.year % 100 != 0 || myTime.year % 400 == 0)
@@ -270,6 +279,7 @@ bool date::isLeepYear() {
 	return ans;
 }
 
+//设置模拟日期 
 void date::setDate(int offset, int days, int quarter)
 {
 	auto isLeap = [](int _year)->bool { return (_year % 4 == 0) && (_year % 100 != 0) || (_year
@@ -282,13 +292,14 @@ void date::setDate(int offset, int days, int quarter)
 	time_t temp = day * 24 * 60 * 60 + quarter * 15 * 60 - 8 * 60 * 60;
 	struct tm tm;
 	localtime_s(&tm, &temp);
-	myTime.year  = 2016+offset;
-	myTime.month = tm.tm_mon+1;
+	myTime.year = 2016 + offset;
+	myTime.month = tm.tm_mon + 1;
 	myTime.day = tm.tm_mday;
 	myTime.hour = tm.tm_hour;
 	myTime.quarter = tm.tm_min;
 }
 
+//设置输出的日期字符串 如：2017/06/01_08:00
 void date::setDateString()
 {
 	string ans, syear, smonth, sday, shour;
@@ -319,6 +330,7 @@ void date::setDateString()
 	DateStr = ans;
 }
 
+//根据日期获取正确的文件夹路径日期 如：D:\\Temps\\2017_01
 string date::getFileString()
 {
 	string ans, syear, smonth;
@@ -332,6 +344,7 @@ string date::getFileString()
 	return ans;
 }
 
+//根据日期获取正确的txt文件 如：2017_03_05
 string date::getTXTString()
 {
 	string ans, syear, smonth, sday;
@@ -350,7 +363,7 @@ string date::getTXTString()
 	return ans;
 }
 
-//创建文件夹
+//创建文件夹 路径
 void mkDir(string path) {
 	string p = "mkdir " + path;  // 注意斜杠是两个。
 	system(p.c_str());  //产生以时间为名字的文件夹
@@ -369,7 +382,7 @@ int main()
 	for (int i = 1; i <= 3; i++)
 	{
 		d.setDate(i, 0, 0);
-		for (int j = 0; j <=( d.isLeepYear() ? 366 : 365); j++)
+		for (int j = 0; j <= (d.isLeepYear() ? 366 : 365); j++)
 		{
 			d.setDate(i, j, 0);
 			//以月为单位创建文件夹
@@ -385,8 +398,8 @@ int main()
 			{
 				d.setDate(i, j, m);
 				d.setDateString();
-				cout << t.getTempString() + "℃_" + d.DateStr << endl;
-				file << t.getTempString() + "℃_" + d.DateStr << endl;
+				cout << t.getTempString() + "_" + d.DateStr << endl;
+				file << t.getTempString() + "_" + d.DateStr << endl;
 			}
 			file.close();
 		}
